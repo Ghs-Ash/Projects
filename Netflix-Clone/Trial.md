@@ -19,3 +19,7 @@ echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
 sudo apt-get update
 sudo apt-get install jenkins
 
+Verify Java is Installed
+
+java -version
+Now, you can proceed with installing Jenkins
