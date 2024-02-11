@@ -28,8 +28,8 @@ pipeline{
                 script{
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
                        sh "docker build --build-arg TMDB_V3_API_KEY=7261acc49c5d56305b3303ec9690ac48 -t netflix ."
-                       sh "docker tag netflix ash355/prathi:latest "
-                       sh "docker push ash355/prathi:latest "
+                       sh "docker tag netflix ash355/netflix:latest "
+                       sh "docker push ash355/netflix:latest "
                     }
                 }
             }
@@ -37,7 +37,7 @@ pipeline{
         
         stage('Deploy to container'){
             steps{
-                sh 'docker run -d -p 8081:80 ash355/prathi:latest'
+                sh 'docker run -d -p 8081:80 ash355/netflix:latest'
             }
         }
         stage('Deploy to kubernets'){
