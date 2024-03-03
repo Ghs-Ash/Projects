@@ -1,0 +1,3 @@
+flask
+flask_sqlalchemy
+pymysql  # or another database adapter if you're not using MySQL
