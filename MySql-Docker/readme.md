@@ -2,9 +2,12 @@ mkdir user-registration-app
 cd user-registration-app
 
 python3 -m venv venv
+
 source venv/bin/activate
 pip install pymysql
+
 pip install Flask Flask-SQLAlchemy
+
 python3 app.py
 
 
