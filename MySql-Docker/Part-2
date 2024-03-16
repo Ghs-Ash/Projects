@@ -1,0 +1,206 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:latest
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "password"
+        - name: MYSQL_DATABASE
+          value: "root"
+        - name: MYSQL_USER
+          value: "root"
+        - name: MYSQL_PASSWORD
+          value: "password"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=  # base64_encoded_root_password for "password"
+  MYSQL_DATABASE: cm9vdA==  # base64_encoded_database_name for "root"
+  MYSQL_USER: cm9vdA==  # base64_encoded_user for "root"
+  MYSQL_PASSWORD: cGFzc3dvcmQ=  # base64_encoded_password for "password"
+
+
+-------------------
+from flask import Flask, render_template, request
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:password@mysql:3306/root'
+db = SQLAlchemy(app)
+
+class UserData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    name = request.form['name']
+    number = request.form['number']
+    
+    user_data = UserData(name=name, number=number)
+    db.session.add(user_data)
+    db.session.commit()
+    
+    return f'Thank you, {name}! Your favorite number is {number}.'
+
+if __name__ == '__main__':
+    db.create_all()
+    app.run(host='0.0.0.0', port=3000, debug=True)
+
+----------------------------------------
+requirements.txt
+Flask==1.1.2
+---------------------------------
+templets/index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Input Form</title>
+</head>
+<body>
+    <h1>Enter Your Name and Favorite Number</h1>
+    <form action="/submit" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br>
+
+        <label for="number">Favorite Number:</label>
+        <input type="number" id="number" name="number" required><br>
+
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
+
+-----------------------------------
+
+Apply these configurations:
+
+kubectl apply -f mysql-secret.yaml
+kubectl apply -f mysql-deployment.yaml
+
+Step 9: Modify Flask App to Use SQLAlchemy
+
+Update your app.py file to use SQLAlchemy to connect to the MySQL database:
+
+from flask import Flask, render_template, request
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://user:password@mysql:3306/database'
+db = SQLAlchemy(app)
+
+class UserData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    name = request.form['name']
+    number = request.form['number']
+    
+    user_data = UserData(name=name, number=number)
+    db.session.add(user_data)
+    db.session.commit()
+    
+    return f'Thank you, {name}! Your favorite number is {number}.'
+
+if __name__ == '__main__':
+    db.create_all()
+    app.run(host='0.0.0.0', port=3000, debug=True)
+
+Step 10: Update Dockerfile
+
+Update your Dockerfile to include the necessary dependencies:
+
+FROM python:3.8
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "app.py"]
+
+Step 11: Build and Run
+
+Build your updated Docker image:
+
+docker build -t mydataapp:latest .
+
+Run the Docker container:
+
+docker run -p 3000:3000 --env-file mysql-env.list mydataapp:latest
+
+In this command, mysql-env.list is a file containing your environment variables for MySQL. Create this file with the following content:
+
+MYSQL_ROOT_PASSWORD=your_root_password
+MYSQL_DATABASE=your_database_name
+MYSQL_USER=your_user
+MYSQL_PASSWORD=your_password
+
+Replace your_root_password, your_database_name, your_user, and your_password with your MySQL credentials.
+
+Step 12: Test in Kubernetes
+
+Now, deploy your Flask app to Kubernetes:
+
+kubectl apply -f msqql-s.yaml
+
+Ensure your MySQL service and deployment are running:
+
+kubectl get services
+kubectl get pods
+
+Access your Flask app through the LoadBalancer service’s external IP:
+
+kubectl get services
+
+Visit the external IP in your browser, submit the form, and verify that the data is stored in your MySQL database.
+
+This completes the steps to set up MySQL in Kubernetes, connect a Flask app to it, and deploy both to the Kubernetes cluster. Let me know if you encounter any issues!
