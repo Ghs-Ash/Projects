@@ -2,7 +2,7 @@
 set -e
 
 # Pull the Docker image from Docker Hub
-echo
+docker push ash355/simple-python-flask-app:tagname
 
 # Run the Docker image as a container
-echo
+docker run -d -p 5000:5000 ash355/simple-python-flask-app:tagname
